@@ -1,0 +1,36 @@
+name: Automated Tetr.io API Test with Postman through CI pipeline
+
+on: push
+
+env:
+  POSTMAN_API_KEY: ${{ secrets.POSTMAN_API_KEY }}
+
+jobs:
+  automated-api-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+      - name: Install Newman
+        run: |
+          npm install -g newman
+          npm install -g newman-reporter-html
+      - name: Fetch Postman collection
+        run: |
+          curl -X GET "https://api.getpostman.com/collections/36297486-7551acb8-d8f4-4b3a-8e09-8d0c7fb0749c" \
+            -H "X-Api-Key: ${POSTMAN_API_KEY}" > collection.json
+      - name: Fetch Postman environment
+        run: |
+          curl -X GET "https://api.getpostman.com/environments/36297486-2795e732-6d4c-4169-b916-bd5f87242814" \
+            -H "X-Api-Key: ${POSTMAN_API_KEY}" > environment.json
+      - name: Run API test
+        run: |
+          newman run collection.json -e environment.json --reporters cli,html --reporter-html-export report.html
+      - name: Upload report
+        uses: actions/upload-artifact@v4
+        with:
+          name: newman-report
+          path: report.html
